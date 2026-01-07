@@ -35,7 +35,7 @@ const App: React.FC = () => {
       const isBoss = idx === bossOrbitIdx;
       
       newCells.push({
-        id: Math.random().toString(36).substr(2, 9),
+        id: `cell-${idx}-${Math.random().toString(36).substr(2, 4)}`,
         type: isBoss ? CellType.BOSS : types[Math.floor(Math.random() * types.length)],
         level: isBoss ? lvl * 5 : Math.max(1, Math.floor(Math.random() * 3)),
         position: { ...pos },
@@ -54,52 +54,51 @@ const App: React.FC = () => {
     document.getElementById('fluid-bg')?.classList.remove('arena-active');
   }, []);
 
-  useEffect(() => initGrid(stage), [stage, initGrid]);
-
+  // Guarantee initialization
   useEffect(() => {
-    const light = document.getElementById('light-source');
-    if (!light) return;
-    // 呼吸灯效果：微调缩放和透明度
-    gsap.to(light, {
-      scale: 1.1,
-      opacity: 0.8,
-      duration: 2.5,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut"
-    });
-  }, []);
+    initGrid(stage);
+  }, [stage, initGrid]);
 
-  const updateLightSource = useCallback((pos: Position, currentMode: GameMode) => {
+  const updateVisualFocus = useCallback((pos: Position, currentMode: GameMode) => {
     const cellSize = 88;
     const gap = 8;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    // 计算玩家格子的中心世界坐标
-    const offsetX = currentMode === 'EXPLORE' ? 8 : 8; // p-2 is 8px
-    const offsetY = currentMode === 'EXPLORE' ? 8 : 8;
+    // Center of player cell in screen space
+    const playerCenterX = rect.left + 8 + (pos.x * (cellSize + gap)) + (cellSize / 2);
+    const playerCenterY = rect.top + 8 + (pos.y * (cellSize + gap)) + (cellSize / 2);
 
-    const targetX = rect.left + offsetX + (pos.x * (cellSize + gap)) + (cellSize / 2);
-    const targetY = rect.top + offsetY + (pos.y * (cellSize + gap)) + (cellSize / 2);
-
-    // 使用弹性缓动让光源跟随更具生命感
+    // 1. Move the underlying light source
     gsap.to('#light-source', {
-      left: targetX,
-      top: targetY,
+      left: playerCenterX,
+      top: playerCenterY,
+      duration: 0.6,
+      ease: 'power2.out'
+    });
+
+    // 2. Move background fluid to track player
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const offsetX = playerCenterX - winW / 2;
+    const offsetY = playerCenterY - winH / 2;
+
+    gsap.to('#fluid-bg', {
+      x: offsetX,
+      y: offsetY,
+      xPercent: -50,
+      yPercent: -50,
       duration: 1.0,
-      ease: 'power3.out'
+      ease: 'sine.out'
     });
   }, []);
 
   useEffect(() => {
     const player = cells.find(c => c.isPlayer);
     if (player) {
-      // 稍微延迟更新，让光源有一点“拖尾”的感觉
-      const timer = setTimeout(() => updateLightSource(player.position, mode), 10);
-      return () => clearTimeout(timer);
+      updateVisualFocus(player.position, mode);
     }
-  }, [cells, mode, updateLightSource]);
+  }, [cells, mode, updateVisualFocus]);
 
   const startArenaRitual = useCallback(async (playerCell: CellData, bossCell: CellData) => {
     setIsBusy(true);
@@ -165,13 +164,11 @@ const App: React.FC = () => {
     if (dir === 'A') targetPos.x -= 1;
     if (dir === 'D') targetPos.x += 1;
 
-    // Edge check: Cannot move out of bounds
     if (targetPos.x < 0 || targetPos.x >= GRID_COLS || targetPos.y < 0 || targetPos.y >= GRID_ROWS) return;
 
     const targetCell = cellsRef.current.find(c => c.position.x === targetPos.x && c.position.y === targetPos.y);
     if (!targetCell) return;
 
-    // Tactical feedback (Camera Shake on Attack)
     gsap.to(containerRef.current, {
       x: dir === 'A' ? -4 : dir === 'D' ? 4 : 0,
       y: dir === 'W' ? -4 : dir === 'S' ? 4 : 0,
@@ -220,7 +217,7 @@ const App: React.FC = () => {
     if (nextLevel > levelLimit) nextLevel = levelLimit;
 
     finalBatch.push({
-      id: `cell-${Date.now()}`,
+      id: `cell-new-${Date.now()}`,
       type: nextType,
       level: nextLevel,
       position: { ...FIXED_SPIRAL_PATH[currentHole] },
@@ -254,46 +251,29 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center p-6 min-h-screen">
-      <div className="w-full max-w-[420px] flex justify-between items-end mb-8 border-b border-white/20 pb-6">
+      <div className="w-full max-w-[420px] flex justify-between items-end mb-8 border-b border-white/10 pb-6">
         <div className="group">
-          <h2 className="text-[11px] font-bold text-zinc-400 tracking-[0.5em] mb-1 uppercase group-hover:text-yellow-400 transition-colors">Sector L-{stage}</h2>
-          <h1 className="text-4xl font-black italic tracking-tighter text-white">VOID<span className="text-zinc-500">BREAKER</span></h1>
+          <h2 className="text-[11px] font-bold text-zinc-500 tracking-[0.5em] mb-1 uppercase group-hover:text-yellow-400 transition-colors">Sector L-{stage}</h2>
+          <h1 className="text-4xl font-black italic tracking-tighter text-white">VOID<span className="text-zinc-700">BREAKER</span></h1>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase mb-1 tracking-widest">Efficiency</p>
-          <p className="text-3xl font-black text-yellow-400 tabular-nums">{(playerPower * 100).toFixed(0)}%</p>
+          <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 tracking-widest">Efficiency</p>
+          <p className="text-3xl font-black text-yellow-500/90 tabular-nums">{(playerPower * 100).toFixed(0)}%</p>
         </div>
       </div>
 
       <div className={`grid-container relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${arenaStatus === 'CLASH' ? 'animate-[impact_0.1s_infinite]' : ''}`}>
         <div 
           ref={containerRef}
-          className={`relative bg-white/[0.01] backdrop-blur-xl p-2 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${mode === 'ARENA' ? 'border-[2px] border-white/20 shadow-2xl shadow-red-500/10' : 'border-0'}`}
+          className={`relative grid-container-bg p-2 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${mode === 'ARENA' ? 'border-[2px] border-white/20' : 'border-0'}`}
           style={{ 
             width: mode === 'EXPLORE' ? exploreW : arenaW,
             height: mode === 'EXPLORE' ? exploreH : arenaH,
             borderRadius: 'var(--radius)'
           }}
         >
-          {mode === 'EXPLORE' && (
-            <div 
-              className="absolute inset-2 grid gap-2 opacity-[0.05] pointer-events-none"
-              style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`, gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}
-            >
-              {Array.from({ length: 24 }).map((_, i) => (
-                <div key={i} className="border border-white/40 rounded-[var(--radius)]" />
-              ))}
-            </div>
-          )}
-
           {cells.map(c => (
-            <Cell 
-              key={c.id} 
-              data={c} 
-              size={88} 
-              gap={8} 
-              mode={mode}
-            />
+            <Cell key={c.id} data={c} size={88} gap={8} mode={mode} />
           ))}
 
           {mode === 'ARENA' && (
@@ -315,11 +295,11 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-16 flex flex-col items-center gap-4 opacity-30">
+      <div className="mt-16 flex flex-col items-center gap-4 opacity-40">
         <div className="flex gap-12 items-center">
-          <i className="ph-crosshair text-2xl text-yellow-400"></i>
-          <div className="h-6 w-[1px] bg-white/40"></div>
-          <p className="text-[11px] font-bold tracking-[0.5em] uppercase font-mono text-white">
+          <i className="ph-crosshair text-2xl text-yellow-500"></i>
+          <div className="h-6 w-[1px] bg-white/30"></div>
+          <p className="text-[11px] font-bold tracking-[0.5em] uppercase font-mono text-white/80">
             {mode === 'EXPLORE' ? 'GRID_LOCKED' : 'BATTLE_ACTIVE'}
           </p>
         </div>

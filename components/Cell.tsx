@@ -16,7 +16,7 @@ const Cell: React.FC<CellProps> = ({ data, size, gap, mode }) => {
   const iconRef = useRef<HTMLElement>(null);
   const posRef = useRef(data.position);
 
-  // 1. 位置更新动画
+  // 1. Positioning & Animation
   useEffect(() => {
     if (cellRef.current) {
       const targetX = data.position.x * (size + gap);
@@ -30,19 +30,15 @@ const Cell: React.FC<CellProps> = ({ data, size, gap, mode }) => {
           gsap.to(cellRef.current, {
             x: targetX,
             y: targetY,
-            duration: 1.5,
+            duration: 1.0,
             ease: 'expo.inOut',
           });
-        } else if (currentX !== targetX && currentY !== targetY) {
-          const tl = gsap.timeline();
-          tl.to(cellRef.current, { x: targetX, duration: 0.25, ease: 'power2.inOut' });
-          tl.to(cellRef.current, { y: targetY, duration: 0.25, ease: 'power2.out' });
         } else {
           gsap.to(cellRef.current, {
             x: targetX,
             y: targetY,
             duration: 0.4,
-            ease: 'power4.out',
+            ease: 'power3.out',
           });
         }
       } else {
@@ -52,46 +48,37 @@ const Cell: React.FC<CellProps> = ({ data, size, gap, mode }) => {
     }
   }, [data.position, size, gap, mode]);
 
-  // 2. 特殊格子的持续动效 (玩家与BOSS)
+  // 2. Continuous Effects (Player/Boss)
   useEffect(() => {
     if ((data.isPlayer || data.isBoss) && innerRef.current) {
       gsap.to(innerRef.current, {
-        borderColor: data.isPlayer ? 'rgba(253, 224, 71, 0.8)' : 'rgba(239, 68, 68, 0.8)',
-        backgroundColor: data.isPlayer ? 'rgba(66, 32, 6, 0.4)' : 'rgba(69, 10, 10, 0.4)',
-        boxShadow: data.isPlayer ? '0 0 25px rgba(253, 224, 71, 0.2)' : '0 0 25px rgba(239, 68, 68, 0.2)',
-        duration: 1.5,
+        borderColor: data.isPlayer ? 'rgba(253, 224, 71, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+        backgroundColor: data.isPlayer ? 'rgba(100, 80, 0, 0.3)' : 'rgba(100, 0, 0, 0.3)',
+        boxShadow: data.isPlayer ? '0 0 30px rgba(253, 224, 71, 0.3)' : '0 0 30px rgba(239, 68, 68, 0.3)',
+        duration: 1.2,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut"
       });
-      
-      if (iconRef.current) {
-        gsap.to(iconRef.current, {
-          y: -2,
-          duration: 1.5,
-          repeat: -1,
-          yoyo: true,
-          ease: "power1.inOut"
-        });
-      }
     }
   }, [data.isPlayer, data.isBoss]);
 
-  // 3. 进场动画
+  // 3. Mount Animation
   useEffect(() => {
     gsap.fromTo(cellRef.current, 
-      { scale: 0.9, opacity: 0 }, 
-      { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+      { scale: 0.8, opacity: 0 }, 
+      { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.5)' }
     );
   }, []);
 
   const isRevealed = data.isRevealed || data.isPlayer || data.isBoss;
   
   const getStyle = () => {
-    if (data.isPlayer) return 'border-yellow-400 text-yellow-300 bg-yellow-900/20 shadow-[0_0_20px_rgba(250,204,21,0.2)]';
+    if (data.isPlayer) return 'border-yellow-400 text-yellow-300 bg-yellow-500/10 shadow-[0_0_20px_rgba(250,204,21,0.2)]';
     if (data.isBoss) return THEMES[CellType.BOSS];
     if (isRevealed) return THEMES[data.type];
-    return 'border-white/[0.08] text-white/10 bg-white/[0.02]';
+    // Significantly more visible default state
+    return 'border-white/10 text-white/20 bg-white/5 backdrop-blur-[2px] shadow-inner';
   };
 
   const getIcon = () => {
@@ -105,27 +92,31 @@ const Cell: React.FC<CellProps> = ({ data, size, gap, mode }) => {
   return (
     <div
       ref={cellRef}
-      className="absolute flex items-center justify-center pointer-events-none"
-      style={{ width: size, height: size, zIndex: data.isPlayer ? 100 : 10 }}
+      className="absolute top-0 left-0 flex items-center justify-center pointer-events-none"
+      style={{ 
+        width: size, 
+        height: size, 
+        zIndex: data.isPlayer ? 100 : (data.isBoss ? 50 : 10) 
+      }}
     >
       <div 
         ref={innerRef}
-        className={`w-full h-full rounded-[var(--radius)] border-[1.5px] backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 ${getStyle()}`}
+        className={`w-full h-full rounded-[var(--radius)] border-[1.5px] flex flex-col items-center justify-center transition-all duration-300 ${getStyle()}`}
       >
         {mode === 'EXPLORE' && (
-          <span className="absolute top-1 right-1.5 text-[7px] font-bold opacity-20 tabular-nums tracking-tighter">
+          <span className="absolute top-1 right-1.5 text-[7px] font-bold opacity-30 tabular-nums">
             {(data.spiralIndex !== undefined ? data.spiralIndex + 1 : 0).toString().padStart(2, '0')}
           </span>
         )}
 
         <i 
           ref={iconRef as any}
-          className={`${getIcon()} text-4xl ${!isRevealed ? 'opacity-20' : 'opacity-90'} mb-1 transition-all duration-500`}
+          className={`${getIcon()} text-4xl ${!isRevealed ? 'opacity-30' : 'opacity-100'} transition-all duration-300`}
         ></i>
         
         {isRevealed && (
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">
-            {data.isPlayer ? 'PRIME' : data.isBoss ? 'WAR' : 'LV.' + data.level}
+          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] opacity-50">
+            {data.isPlayer ? 'CORE' : data.isBoss ? 'WAR' : 'LV.' + data.level}
           </span>
         )}
       </div>

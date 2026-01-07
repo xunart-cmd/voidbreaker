@@ -11,9 +11,9 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700;800&display=swap');
         
         :root { 
-            --bg-color: #0e0e11; 
-            --fluid-c1: #444444; 
-            --fluid-c2: #1a1a1e; 
+            --bg-color: #050402; 
+            --fluid-c1: #575757; 
+            --fluid-c2: #111010; 
             --radius: 8px;
         }
 
@@ -35,12 +35,12 @@
             background: linear-gradient(
                 to bottom,
                 transparent 50%,
-                rgba(0, 0, 0, 0.2) 50%
+                rgba(0, 0, 0, 0.3) 50%
             );
             background-size: 100% 4px;
             z-index: 100;
             pointer-events: none;
-            opacity: 0.1;
+            opacity: 0.15;
         }
 
         .fluid-layer { 
@@ -51,16 +51,26 @@
             height: 300vmax; 
             transform: translate(-50%, -50%); 
             z-index: 0; 
-            background: conic-gradient(from 0deg, var(--bg-color) 0%, #151518 10%, var(--fluid-c2) 40%, var(--fluid-c1) 50%, var(--fluid-c2) 60%, #151518 90%, var(--bg-color) 100%); 
-            filter: blur(140px); 
-            opacity: 0.7;
+            background: conic-gradient(
+                from 0deg, 
+                var(--bg-color) 0%, 
+                var(--bg-color) 15%, 
+                var(--fluid-c2) 40%, 
+                var(--fluid-c1) 50%, 
+                var(--fluid-c2) 60%, 
+                var(--bg-color) 85%, 
+                var(--bg-color) 100%
+            ); 
+            filter: blur(40px); 
+            opacity: 0.8;
             pointer-events: none;
+            will-change: transform;
         }
 
         .rotator { 
             width: 100%; 
             height: 100%; 
-            animation: flowRotate 30s linear infinite; 
+            animation: flowRotate 12s linear infinite; 
         }
 
         @keyframes flowRotate { 
@@ -68,35 +78,39 @@
             100% { transform: rotate(360deg); } 
         }
 
-        .arena-active {
-            --fluid-c1: #6b1414;
-            --fluid-c2: #1a0a0a;
-        }
-
-        /* 优化后的光源：使用 color-dodge 混合模式，并增强中心点亮度 */
         .player-light {
             position: absolute;
             width: 500px;
             height: 500px;
             background: radial-gradient(
                 circle at center, 
-                rgba(253, 224, 71, 0.25) 0%, 
-                rgba(253, 224, 71, 0.08) 25%, 
-                rgba(253, 224, 71, 0.02) 50%, 
-                transparent 75%
+                rgba(253, 224, 71, 0.4) 0%, 
+                rgba(253, 224, 71, 0.15) 30%, 
+                rgba(253, 224, 71, 0.05) 50%,
+                transparent 70%
             );
             border-radius: 50%;
             pointer-events: none;
-            z-index: 40; /* 置于格子之上，但混合模式确保不产生遮挡 */
+            z-index: 1; 
             transform: translate(-50%, -50%);
-            mix-blend-mode: color-dodge; /* 核心改变：让光照“点燃”下层颜色 */
-            filter: blur(20px);
-            will-change: left, top, transform;
+            filter: blur(40px);
+            will-change: left, top;
+        }
+
+        .arena-active {
+            --fluid-c1: #991b1b;
+            --fluid-c2: #450a0a;
         }
 
         #root {
             position: relative;
             z-index: 10;
+        }
+
+        .grid-container-bg {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
     </style>
     <script type="importmap">
