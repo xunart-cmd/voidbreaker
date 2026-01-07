@@ -1,0 +1,5 @@
+{
+  "name": "Spiral Grid Tactics",
+  "description": "A 4x6 tactical grid game where moving triggers a unique spiral displacement mechanism. Defeat cells to shift the entire board in a predictable clockwise spiral.",
+  "requestFramePermissions": []
+}
